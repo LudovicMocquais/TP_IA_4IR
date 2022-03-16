@@ -57,18 +57,21 @@ A FAIRE : ECRIRE ici les clauses de negamax/5
 .....................................
 	*/
 	negamax(J, Etat, Pmax, Pmax, [rien, Val]):-
-		heuristique(J,Etat,Val).
+		heuristique(J,Etat,Val), !.
+
 	
 	negamax(J, Etat, P, Pmax, [rien, Val]):-
 		situation_terminale(J,Etat),
-		heuristique(J,Etat,Val).
+		heuristique(J,Etat,Val), !.
+		%Ajouter situation terminale : gagnant ou perdant directement
 		
 
 
 	negamax(J, Etat, P, Pmax, [Coup, Val]):-
 		successeurs(J,Etat,Succ),
 		loop_negamax(J,P,Pmax,Succ,SuccF),
-		meilleur(SuccF,[Coup,-Val]).
+		meilleur(SuccF,[Coup,Val1]),
+		Val is -Val1.
 
 
 
@@ -136,18 +139,19 @@ A FAIRE : ECRIRE ici les clauses de meilleur/2
 
 	meilleur([C],C).
 
-	meilleur([L|R], M):-
-		meilleur_rec([L|R],L).
+	meilleur([X|L], M):-
+		not(L == []),
+		meilleur_rec(L,X,M).
 
 	
-	meilleur_rec([],M).
-	meilleur_rec([[C,V]|R],[Ci,Vi]):-
+	meilleur_rec([],M,M).
+	meilleur_rec([[C,V]|L],[Ci,Vi],M):-
 		V < Vi,
-		meilleur_rec(R,[C,V]).
+		meilleur_rec(L,[C,V],M).
 	
-	meilleur_rec([[C,V]|R],[Ci,Vi]):-
-		Vi < V,
-		meilleur_rec(R,[Ci,Vi]).
+	meilleur_rec([[C,V]|L],[Ci,Vi],M):-
+		Vi =< V,
+		meilleur_rec(L,[Ci,Vi],M).
 
 
 

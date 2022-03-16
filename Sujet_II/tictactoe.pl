@@ -177,7 +177,9 @@ alignement_perdant(Ali, J) :-
 
 % A FAIRE
 successeur(J, Etat,[L,C]) :- 
-	nth1(L,Etat,Lig), 
+	nth1(L,Etat,Lig),
+	nth1(C,Lig,A),
+	var(A), 
 	nth1(C,Lig,J).
 
 	/**************************************
