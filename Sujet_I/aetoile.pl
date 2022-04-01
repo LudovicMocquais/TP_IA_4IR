@@ -70,9 +70,8 @@ main :-
 
 aetoile(Pf, Ps, _) :-
 %%% Cas Trivial 1
-	empty(Pf), 
 	empty(Ps),
-	write('PAS de SOLUTION : L’ETAT FINAL N’EST PAS ATTEIGNABLE !').
+	write('PAS de SOLUTION : L ETAT FINAL N EST PAS ATTEIGNABLE !').
 
 aetoile(Pf, Pu,Q) :-
 %%%% Cas trivial 2
@@ -91,17 +90,17 @@ aetoile(Pf, Ps, Qs) :-
 
 	% on enlève le nœud de Pf correspondant à l’état U à développer (celui de valeur F minimale) et on enlève aussi le nœud
 	%frère associé dans Pu
-	suppress_min([[Fu,Hu,Gu],U],Pf,Pf_new),
-	suppress([U,[Fu,Hu,Gu],Pere,Action],Ps,Ps_new),
+	suppress_min([[Fu,Hu,Gu],U],Pf,Pf_int),
+	suppress([U,[Fu,Hu,Gu],Pere,Action],Ps,Ps_int),
 
 	% developpement de U
 		%Determiner tous les successeurs
 	expand(U,Gu,Tab_succ),
 		%Traiter chaque noeud
-	loop_successors(Tab_succ, Qs,Pf_new,Ps_new),
+	loop_successors(Tab_succ, Qs,Pf_int,Ps_int, Qs_int, Pf_new, Ps_new),
 
 	% Inserer le noeud U dans Q
-	insert([U,[Fu,Hu,Gu], Pere,Action], Qs, Qs_new),
+	insert([U,[Fu,Hu,Gu], Pere,Action], Qs_int, Qs_new),
 
 	%Appeler recursivement aetoile
 	aetoile(Pf_new,Ps_new,Qs_new).
@@ -135,8 +134,66 @@ expand(U,Gu,Tab_succ):-
 
 
 
-loop_successors(Tab_succ, Qs,Pf_new,Ps_new) :-
-	True.
+loop_successors([], Qs,Pf,Ps,Qs,Pf,Ps). %% Fin de la loop
+
+loop_successors([ [S,[F,H,G],_,_] | Tab_succ], Qs,Pf,Ps, Q_new, Pf_new, Ps_new) :-
+%% Cas ou S est dans Q -> dejà développé
+	belongs([S, _,_,_], Qs),
+	suppress([S, _,_,_ ],Ps,Ps_new),
+	suppress([[F,H,G],S],Pf,Pf_new),
+	loop_successors(Tab_succ, Qs,Pf_int,Ps_int,Q_new, Pf_new, Ps_new).
+
+loop_successors([ [S,[F,H,G],_,_] | Tab_succ], Qs,Pf,Ps, Q_new, Pf_new, Ps_new) :-
+%% Cas ou S est dans dans P, état à développer on garde la meilleur evalutation
+	belongs([[F,H,G],S], Pf),
+	findall( [F,H,G],
+			(belongs([_,S], Pf)), 
+			Eval),
+	meilleur_Eval(Eval, Meilleur),
+	suppress_not_meilleur(Eval,Meilleur, Ps,Pf,Ps_int, Pf_int),
+	loop_successors(Tab_succ, Qs,Pf_int,Ps_int,Q_new, Pf_new, Ps_new).
+
+
+
+loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Q_new, Pf_new, Ps_new) :-
+%% Cas ou S est un nouvel état
+	not(belongs([[F,H,G],S], Pf)),
+	not(belongs([S, [F,H,G], _,_], Qs)),
+	insert([S, [F,H,G], Pere,Action ], Ps, Ps_int),
+	insert([[F,H,G],S], Pf, Pf_int),
+	loop_successors(Tab_succ, Qs,Pf_int,Ps_int,Q_new, Pf_new, Ps_new).
+
+
+
+meilleur_Eval_rec([], I,I).
+
+meilleur_Eval_rec([[F1,H1,G1]| R], [X,H,G], Meilleur):-
+	F1 =< X,
+	meilleur_Eval_rec(R, [F1,H1,G1], Meilleur).
+
+meilleur_Eval_rec([[F1,H1,G1]|R], [X,H,G], Meilleur):-
+	F1 > X,
+	meilleur_Eval_rec(R, [X,H,G], Meilleur).
+
+
+meilleur_Eval([ [F1,H1,G1] | R], Meilleur):-
+	meilleur_Eval_rec([ [F1,H1,G1] | R], [F1,H1,G1], Meilleur).
+
+
+
+suppress_not_meilleur([[F1,H1,G1] | R], Meilleur, Ps,Pf,Ps_new, Pf_new):-
+	not([F1,H1,G1] = Meilleur),
+	suppress([S,[F1,H1,G1],_,_],Ps,Ps_int),
+	suppress([[F1,H1,G1],S],Pf,Pf_int),
+	suppress_not_meilleur(R, Meilleur, Ps_int, Pf_int, Ps_new, Pf_new).
+
+suppress_not_meilleur([[F1,H1,G1] | R], Meilleur, Ps,Pf,Ps_new, Pf_new):-
+	[F1,H1,G1] = Meilleur,
+	suppress_not_meilleur(R, Meilleur, Ps, Pf, Ps_new, Pf_new).
+
+suppress_not_meilleur([],Meilleur, Ps,Pf,Ps, Pf).
+
+
 
 
 %*******************************************************************************
@@ -160,3 +217,25 @@ test_affiche_solution :-
 test_expand(Tab_succ):-
 	initial_state(U),
 	expand(U,0, Tab_succ).
+
+test_loop_succ(Tab_succ):-
+	initial_state(U),
+
+	heuristique(U, H0),
+	G0 is 0,
+	F0 is (H0+G0),
+	empty(Pf0), 
+	empty(Pu0), 
+
+	empty(Q),
+
+	insert([[F0,H0,G0], U], Pf0, Pf),
+	insert([U,[F0,H0,G0], nil,nil], Pu0, Pu),
+
+	expand(U,0, Tab_succ),
+	
+	loop_successors(Tab_succ, Q,Pf,Pu,Qn,Pfn,Pun),
+	
+	write('\nQn'),put_flat(Qn),
+	write('\nPfn'),put_flat(Pfn),
+	write('\nPun'),put_flat(Pun).
