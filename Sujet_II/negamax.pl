@@ -63,9 +63,7 @@ A FAIRE : ECRIRE ici les clauses de negamax/5
 	negamax(J, Etat, P, Pmax, [rien, Val]):-
 		situation_terminale(J,Etat),
 		heuristique(J,Etat,Val), !.
-		%Ajouter situation terminale : gagnant ou perdant directement
 		
-
 
 	negamax(J, Etat, P, Pmax, [Coup, Val]):-
 		successeurs(J,Etat,Succ),
@@ -161,8 +159,8 @@ A FAIRE : ECRIRE ici les clauses de meilleur/2
   	*******************/
 
 main(B,V, Pmax) :-
-
-	true.        
+	situation_initiale(U0),
+	negamax(x,U0,0,Pmax,[B,V]).
 
 
 	/*

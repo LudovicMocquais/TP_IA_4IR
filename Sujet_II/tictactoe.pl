@@ -46,6 +46,14 @@ adversaire(o,x).
 
 situation_terminale(_Joueur, Situation) :-
 	ground(Situation).
+	
+situation_terminale(Joueur, Situation) :-
+	alignement(Alig,Situation),
+   	alignement_gagnant(Alig,Joueur), !.
+
+situation_terminale(Joueur, Situation) :-
+	alignement(Alig,Situation),
+   	alignement_perdant(Alig,Joueur), !.
 
 	/***************************
 	DEFINITIONS D'UN ALIGNEMENT
