@@ -177,11 +177,14 @@ A FAIRE :
 	*/
 
 plusieurs_profondeurs(0,[]).
-plusieurs_profondeurs(P,[[P,B,V]|L]):- %boucle retournant une liste avec les coups et les valeurs associées à chaque profondeur
+plusieurs_profondeurs(P,[[P,B,V,Runtime]|L]):- %boucle retournant une liste avec les coups et les valeurs associées à chaque profondeur
 	P>0,
 	P2 is P-1,
-	test(P2, L),
-	main(B,V,P).
+	statistics(runtime,[Start,_]),
+	main(B,V,P),
+	statistics(runtime,[Stop,_]),
+	Runtime is Stop -Start,
+	plusieurs_profondeurs(P2, L).
 
 test(L):- 
 	plusieurs_profondeurs(9,L).

@@ -70,9 +70,8 @@ main :-
 
 %*******************************************************************************
 
-aetoile(Pf, Pu, _) :-
+aetoile(nil, nil, _) :-
 %%% Cas Trivial 1
-	empty(Pf),
 	write('PAS de SOLUTION : L ETAT FINAL N EST PAS ATTEIGNABLE !').
 
 aetoile(Pf, Pu,Q) :-
@@ -93,6 +92,7 @@ aetoile(Pf, Ps, Qs) :-
 	% on enlève le nœud de Pf correspondant à l’état U à développer (celui de valeur F minimale) et on enlève aussi le nœud
 	%frère associé dans Pu
 	suppress_min([[Fu,Hu,Gu],U],Pf,Pf_int),
+	not(final_state(U)),
 	suppress([U,[Fu,Hu,Gu],Pere,Action],Ps,Ps_int),
 
 	% Inserer le noeud U dans Q
@@ -116,11 +116,11 @@ affiche_solution(Q) :-
 	affiche_solution_rec(Q,F). %on recupere les coups de l'etat initial a l'etat final
 
 affiche_solution_rec(Q,U):-
-	suppress([U,_,nil,Action], Q, _).
+	belongs([U,_,nil,nil], Q).
 
 affiche_solution_rec(Q, U) :-
-	suppress([U,_,Pere,Action], Q, Q_new), %on recupere l action menant a letat U ainsi que l'etat pere
-	affiche_solution_rec(Q_new,Pere), %on cherche les coups menant a letat pere depuis l'etat initial
+	belongs([U,_,Pere,Action], Q), %on recupere l action menant a letat U ainsi que l'etat pere
+	affiche_solution_rec(Q,Pere), %on cherche les coups menant a letat pere depuis l'etat initial
 	write(" "),
 	write(Action).
 	
@@ -135,26 +135,25 @@ expand(U,Gu,Tab_succ):-
 			Tab_succ). 
 
 
-
 loop_successors([], Qs,Pf,Ps,Pf,Ps). %% Fin de la loop
 
-loop_successors([ [S,_,_,_] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
+loop_successors([ [S,C,P,A] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
 %% Cas ou S est dans Q -> dejà développé
 	% on verifie l'appartenance
 	belongs([S, _,_,_], Qs),
 
 	%on continue la loop
-	loop_successors(Tab_succ, Qs, Pf, Ps, Pf_new, Ps_new).
+	loop_successors(Tab_succ, Qs, Pf, Ps, Pf_new, Ps_new),!.
 
 
 loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps,Pf_new, Ps_new) :-
 %% Cas ou S est dans dans P, état à développer on garde la meilleure evalutation qui est l'ancienne
 	% on verifie l appartenance
 	belongs([[Fi,Hi,Gi],S], Pf),
-	Gi =< G,
+	Fi =< F,
 
 	%on continue la loop
-	loop_successors(Tab_succ, Qs,Pf,Ps, Pf_new, Ps_new).
+	loop_successors(Tab_succ, Qs,Pf,Ps, Pf_new, Ps_new),!.
 
 loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
 %% Cas ou S est dans dans P, état à développer on garde la meilleur evalutation qui est l'actuelle
@@ -162,7 +161,7 @@ loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new)
 	belongs([S,[Fi,Hi,Gi],Pi,Ai], Ps), 
 
 	%on supprime l'ancien
-	Gi > G,
+	Fi > F,
 	suppress([[Fi,Hi,Gi],S], Pf, Pf_int), 
 	suppress([S,[Fi,Hi,Gi],Pi,Ai], Ps, Ps_int),
 
@@ -171,7 +170,7 @@ loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new)
 	insert([S, [F,H,G], Pere,Action ], Ps_int, Ps_int2),
 	
 	%on continue la loop
-	loop_successors(Tab_succ, Qs,Pf_int2,Ps_int2, Pf_new, Ps_new).
+	loop_successors(Tab_succ, Qs,Pf_int2,Ps_int2, Pf_new, Ps_new),!.
 
 
 loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
@@ -179,14 +178,14 @@ loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new)
 
 	%on verifie que letat est nouveau
 	not(belongs([S,C,P,A], Qs)),
-	not(belongs([C,S], Pf)),
+	not(belongs([[F,H,G],S], Pf)),
 
 	% on l ajoute dans les etat a developper
 	insert([[F,H,G],S], Pf, Pf_int),
 	insert([S, [F,H,G], Pere, Action], Ps, Ps_int),
 
 	%on continue la loop
-	loop_successors(Tab_succ, Qs, Pf_int, Ps_int, Pf_new, Ps_new).
+	loop_successors(Tab_succ, Qs, Pf_int, Ps_int, Pf_new, Ps_new),!.
 
 
 %*******************************************************************************
@@ -227,8 +226,14 @@ test_loop_succ(Tab_succ):-
 
 	expand(U,0, Tab_succ),
 	
-	loop_successors(Tab_succ, Q,Pf,Pu,Qn,Pfn,Pun),
+	loop_successors(Tab_succ, Q,Pf,Pu,Pfn,Pun),
 	
-	write('\nQn'),put_flat(Qn),
+	write('\nQn'),put_flat(Q),
 	write('\nPfn'),put_flat(Pfn),
 	write('\nPun'),put_flat(Pun).
+
+temps_calcul(Runtime):-
+	statistics(runtime,[Start,_]),
+	main,
+	statistics(runtime,[Stop,_]),
+	Runtime is Stop -Start.
