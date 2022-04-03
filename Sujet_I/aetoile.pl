@@ -50,16 +50,18 @@ Predicat principal de l'algorithme :
 main :-
 	% initialisations Pf, Pu et Q 
 	initial_state(S0),
-	heuristique(S0, H0),
-	G0 is 0,
-	F0 is (H0+G0),
-	empty(Pf0), 
+	heuristique(S0, H0), %valeur de l'heuristique initiale
+	G0 is 0, %coup initial
+	F0 is (H0+G0), %cout de la plus courte successions de coups vers la situation finale
+	
+	%Pf et Pu contiennent l'etat initial
+	empty(Pf0),
+	insert([[F0,H0,G0], S0], Pf0, Pf), 
 	empty(Pu0), 
-	empty(Q),
-
-	insert([[F0,H0,G0], S0], Pf0, Pf),
 	insert([S0,[F0,H0,G0], nil,nil], Pu0, Pu),
 
+	%Aucun n'etat n'a ete totalement developpe initialement
+	empty(Q),
 
 	% lancement de Aetoile
 	aetoile(Pf,Pu,Q).
@@ -68,9 +70,9 @@ main :-
 
 %*******************************************************************************
 
-aetoile(Pf, Ps, _) :-
+aetoile(Pf, Pu, _) :-
 %%% Cas Trivial 1
-	empty(Ps),
+	empty(Pf),
 	write('PAS de SOLUTION : L ETAT FINAL N EST PAS ATTEIGNABLE !').
 
 aetoile(Pf, Pu,Q) :-
@@ -80,9 +82,9 @@ aetoile(Pf, Pu,Q) :-
 
 	% On cherche le pere de la situation finale et l'action réalisee pour arriver à la situation finale
 	suppress([S,Cost,Pere,ActionFinale],Pu,Puf),
-
 	insert([S,Cost,Pere,ActionFinale],Q,Qf),
 
+	%affichage de la solution
 	affiche_solution(Qf).
 
 aetoile(Pf, Ps, Qs) :-
@@ -93,16 +95,16 @@ aetoile(Pf, Ps, Qs) :-
 	suppress_min([[Fu,Hu,Gu],U],Pf,Pf_int),
 	suppress([U,[Fu,Hu,Gu],Pere,Action],Ps,Ps_int),
 
+	% Inserer le noeud U dans Q
+	insert([U,[Fu,Hu,Gu], Pere,Action], Qs, Qs_new),
+
 	% developpement de U
 		%Determiner tous les successeurs
 	expand(U,Gu,Tab_succ),
 		%Traiter chaque noeud
-	loop_successors(Tab_succ, Qs,Pf_int,Ps_int, Qs_int, Pf_new, Ps_new),
+	loop_successors(Tab_succ, Qs_new,Pf_int,Ps_int, Pf_new, Ps_new),
 
-	% Inserer le noeud U dans Q
-	insert([U,[Fu,Hu,Gu], Pere,Action], Qs_int, Qs_new),
-
-	%Appeler recursivement aetoile
+	%Appeler recursivement aetoile pour la suite
 	aetoile(Pf_new,Ps_new,Qs_new).
 
 %*******************************************************************************
@@ -111,14 +113,14 @@ aetoile(Pf, Ps, Qs) :-
 
 affiche_solution(Q) :-
 	final_state(F),
-	affiche_solution_rec(Q,F).
+	affiche_solution_rec(Q,F). %on recupere les coups de l'etat initial a l'etat final
 
 affiche_solution_rec(Q,U):-
 	suppress([U,_,nil,Action], Q, _).
 
 affiche_solution_rec(Q, U) :-
-	suppress([U,_,Pere,Action], Q, Q_new),
-	affiche_solution_rec(Q_new,Pere),
+	suppress([U,_,Pere,Action], Q, Q_new), %on recupere l action menant a letat U ainsi que l'etat pere
+	affiche_solution_rec(Q_new,Pere), %on cherche les coups menant a letat pere depuis l'etat initial
 	write(" "),
 	write(Action).
 	
@@ -130,70 +132,61 @@ expand(U,Gu,Tab_succ):-
 				G is (Gu+Cout), 
 				F is (G+H)
 			), 
-			Tab_succ).
+			Tab_succ). 
 
 
 
-loop_successors([], Qs,Pf,Ps,Qs,Pf,Ps). %% Fin de la loop
+loop_successors([], Qs,Pf,Ps,Pf,Ps). %% Fin de la loop
 
-loop_successors([ [S,[F,H,G],_,_] | Tab_succ], Qs,Pf,Ps, Q_new, Pf_new, Ps_new) :-
+loop_successors([ [S,_,_,_] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
 %% Cas ou S est dans Q -> dejà développé
+	% on verifie l'appartenance
 	belongs([S, _,_,_], Qs),
-	suppress([S, _,_,_ ],Ps,Ps_new),
-	suppress([[F,H,G],S],Pf,Pf_new),
-	loop_successors(Tab_succ, Qs,Pf_int,Ps_int,Q_new, Pf_new, Ps_new).
 
-loop_successors([ [S,[F,H,G],_,_] | Tab_succ], Qs,Pf,Ps, Q_new, Pf_new, Ps_new) :-
-%% Cas ou S est dans dans P, état à développer on garde la meilleur evalutation
-	belongs([[F,H,G],S], Pf),
-	findall( [F,H,G],
-			(belongs([_,S], Pf)), 
-			Eval),
-	meilleur_Eval(Eval, Meilleur),
-	suppress_not_meilleur(Eval,Meilleur, Ps,Pf,Ps_int, Pf_int),
-	loop_successors(Tab_succ, Qs,Pf_int,Ps_int,Q_new, Pf_new, Ps_new).
+	%on continue la loop
+	loop_successors(Tab_succ, Qs, Pf, Ps, Pf_new, Ps_new).
 
 
+loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps,Pf_new, Ps_new) :-
+%% Cas ou S est dans dans P, état à développer on garde la meilleure evalutation qui est l'ancienne
+	% on verifie l appartenance
+	belongs([[Fi,Hi,Gi],S], Pf),
+	Gi =< G,
 
-loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Q_new, Pf_new, Ps_new) :-
+	%on continue la loop
+	loop_successors(Tab_succ, Qs,Pf,Ps, Pf_new, Ps_new).
+
+loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
+%% Cas ou S est dans dans P, état à développer on garde la meilleur evalutation qui est l'actuelle
+	% on verifie l appartenance
+	belongs([S,[Fi,Hi,Gi],Pi,Ai], Ps), 
+
+	%on supprime l'ancien
+	Gi > G,
+	suppress([[Fi,Hi,Gi],S], Pf, Pf_int), 
+	suppress([S,[Fi,Hi,Gi],Pi,Ai], Ps, Ps_int),
+
+	% on l ajoute dans les etat a developper
+	insert([[F,H,G],S], Pf_int, Pf_int2),  
+	insert([S, [F,H,G], Pere,Action ], Ps_int, Ps_int2),
+	
+	%on continue la loop
+	loop_successors(Tab_succ, Qs,Pf_int2,Ps_int2, Pf_new, Ps_new).
+
+
+loop_successors([ [S,[F,H,G],Pere,Action] | Tab_succ], Qs,Pf,Ps, Pf_new, Ps_new) :-
 %% Cas ou S est un nouvel état
-	not(belongs([[F,H,G],S], Pf)),
-	not(belongs([S, [F,H,G], _,_], Qs)),
-	insert([S, [F,H,G], Pere,Action ], Ps, Ps_int),
+
+	%on verifie que letat est nouveau
+	not(belongs([S,C,P,A], Qs)),
+	not(belongs([C,S], Pf)),
+
+	% on l ajoute dans les etat a developper
 	insert([[F,H,G],S], Pf, Pf_int),
-	loop_successors(Tab_succ, Qs,Pf_int,Ps_int,Q_new, Pf_new, Ps_new).
+	insert([S, [F,H,G], Pere, Action], Ps, Ps_int),
 
-
-
-meilleur_Eval_rec([], I,I).
-
-meilleur_Eval_rec([[F1,H1,G1]| R], [X,H,G], Meilleur):-
-	F1 =< X,
-	meilleur_Eval_rec(R, [F1,H1,G1], Meilleur).
-
-meilleur_Eval_rec([[F1,H1,G1]|R], [X,H,G], Meilleur):-
-	F1 > X,
-	meilleur_Eval_rec(R, [X,H,G], Meilleur).
-
-
-meilleur_Eval([ [F1,H1,G1] | R], Meilleur):-
-	meilleur_Eval_rec([ [F1,H1,G1] | R], [F1,H1,G1], Meilleur).
-
-
-
-suppress_not_meilleur([[F1,H1,G1] | R], Meilleur, Ps,Pf,Ps_new, Pf_new):-
-	not([F1,H1,G1] = Meilleur),
-	suppress([S,[F1,H1,G1],_,_],Ps,Ps_int),
-	suppress([[F1,H1,G1],S],Pf,Pf_int),
-	suppress_not_meilleur(R, Meilleur, Ps_int, Pf_int, Ps_new, Pf_new).
-
-suppress_not_meilleur([[F1,H1,G1] | R], Meilleur, Ps,Pf,Ps_new, Pf_new):-
-	[F1,H1,G1] = Meilleur,
-	suppress_not_meilleur(R, Meilleur, Ps, Pf, Ps_new, Pf_new).
-
-suppress_not_meilleur([],Meilleur, Ps,Pf,Ps, Pf).
-
-
+	%on continue la loop
+	loop_successors(Tab_succ, Qs, Pf_int, Ps_int, Pf_new, Ps_new).
 
 
 %*******************************************************************************

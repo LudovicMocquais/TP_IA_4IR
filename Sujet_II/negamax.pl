@@ -105,10 +105,13 @@ successeurs(J,Etat,Succ) :-
 
 loop_negamax(_,_, _  ,[],                []).
 loop_negamax(J,P,Pmax,[[Coup,Suiv]|Succ],[[Coup,Vsuiv]|Reste_Couples]) :-
-	loop_negamax(J,P,Pmax,Succ,Reste_Couples), %appel recursif pour developper tous les successeurs de la liste
+	loop_negamax(J,P,Pmax,Succ,Reste_Couples), %appel recursif pour developper le reste des successeurs de la liste
 	adversaire(J,A), % Trouve l'adversaire du joueur courant car negamax est relatif au joueur courant
 	Pnew is P+1, %on augmente la profondeur car on a explore le niveau courant on passe donc au suivant
-	negamax(A,Suiv,Pnew,Pmax, [_,Vsuiv]). % on developpe un etat suivant (c'est l'adversaire qui joue) de la liste initiale pour calculer la valeur finale apres le developpement jusqu'a la profondeur maximale
+	negamax(A,Suiv,Pnew,Pmax, [_,Vsuiv]). % on developpe l'etat suivant (c'est l'adversaire qui joue le prochain 
+											%coup) de la liste initiale pour calculer la valeur finale apres le 
+											%developpement (successions des coups) jusqu'a la profondeur 
+											%maximale
 
 	/*
 
@@ -158,10 +161,13 @@ A FAIRE : ECRIRE ici les clauses de meilleur/2
   	PROGRAMME PRINCIPAL
   	*******************/
 
-main(B,V, Pmax) :-
+main(B,V, Pmax) :- %Donne le premier coup à jouer avec une profondeur de recherche de Pmax coups
 	situation_initiale(U0),
-	negamax(x,U0,0,Pmax,[B,V]).
+	joueur_initial(J),
+	negamax(J,U0,0,Pmax,[B,V]).
 
+%mainv2(J,U,B,V, Pmax) :- %% Pour simuler tout le jeu étape par étape plus facilement
+%	negamax(J,U,0,Pmax,[B,V]).
 
 	/*
 A FAIRE :
@@ -170,3 +176,12 @@ A FAIRE :
 	Commentez les r�sultats obtenus.
 	*/
 
+plusieurs_profondeurs(0,[]).
+plusieurs_profondeurs(P,[[P,B,V]|L]):- %boucle retournant une liste avec les coups et les valeurs associées à chaque profondeur
+	P>0,
+	P2 is P-1,
+	test(P2, L),
+	main(B,V,P).
+
+test(L):- 
+	plusieurs_profondeurs(9,L).

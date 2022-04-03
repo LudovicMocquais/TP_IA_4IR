@@ -31,15 +31,18 @@ Les autres prédicats sont spécifiques au Taquin.
    % ETAT INITIAL DU JEU
    %********************   
    % format :  initial_state(+State) ou State est une matrice (liste de listes)
-   
 
-initial_state([ [b, h, c],       % C'EST L'EXEMPLE PRIS EN COURS
-                [a, f, d],       % 
-                [g,vide,e] ]).   % h1=4,   h2=5,   f*=5
+initial_state([ [e, f, g],
+                [d,vide,h],
+                [c, b, a]  ]). % h2=24, f*=30 
 
 % AUTRES EXEMPLES POUR LES TESTS DE  A*
 
 /*
+initial_state([ [b, h, c],       % C'EST L'EXEMPLE PRIS EN COURS
+                [a, f, d],       % 
+                [g,vide,e] ]).   % h1=4,   h2=5,   f*=5
+
 initial_state([ [ a, b, c],        
                 [ g, h, d],
                 [vide,f, e] ]). % h2=2, f*=2
@@ -50,7 +53,7 @@ initial_state([ [b, c, d],
 			
 initial_state([ [f, g, a],
                 [h,vide,b],
-                [d, c, e]  ]). % h2=16, f*=20
+                [d, c, e]  ]). % h2=16, f*=20 
 			
 initial_state([ [e, f, g],
                 [d,vide,h],
@@ -175,8 +178,8 @@ coordonnees([L,C], Mat, Elt) :-
 %*************
    
 heuristique(U,H) :-
-    heuristique1(U, H).  % au debut on utilise l'heuristique 1 
-%   heuristique2(U, H).  % ensuite utilisez plutot l'heuristique 2  
+%   heuristique1(U, H).  % au debut on utilise l'heuristique 1 
+   heuristique2(U, H).  % ensuite utilisez plutot l'heuristique 2  
    
    
 %****************
@@ -223,7 +226,7 @@ distance(P,U,F,D):-
    D is V1 + V2.
 
 
-   heuristique2(U, H) :- 
+heuristique2(U, H) :- 
    final_state(F), 
    findall(D, distance(_,U,F,D), List),
    sumlist(List,H).  
